@@ -1,3 +1,28 @@
+.data
+_id: .word 3126375
+_credits: .word 314
+_name: .asciiz "Kevin T. McDonnell"
+
+# Test program for parts 1, 2
+.data
+.align 2
+_record: .space 8
+
+.text
+lw $a0, _id
+lw $a1, _credits
+la $a2, _name
+la $a3, _record
+
+jal init_student
+
+la $a0, _record
+jal print_student
+
+# Exit
+li $v0, 10
+syscall
+
 .text
 
 init_student:
@@ -14,10 +39,10 @@ init_student:
 	and $t8, $t1, $t7 # now t8 lower 10 bits of t1 contains the credits
 	
 	#put id and credits together
-	or $t6, $t9, $t8 # create the 32 bits that contains both ID and Credits
+	and $t6, $t9, $t8 # create the 32 bits that contains both ID and Credits
 	sw $t6, 0($a3)  #insert id and credits into the first 23 bits. 
 	
-	move $t2, $a2  #load the name string 
+	lw $t2, 0($a2)  #load the name string 
 	sw $t2, 4($a3) #save the name string into the struct 
 	
 	jr $ra                    # Return 
@@ -33,23 +58,14 @@ print_student:
 	srl $t8, $t8, 10             #shift 10 bits down
 	li $v0, 1                 # syscall for int 
    	move $a0, $t8             # Load ID into $a0
-	syscall 		#print the id out 
-	li $v0, 11		#start printing empty space 
-	li $t2, ' '		#put empty space in 
-	move $a0, $t2             # Load empty space  into $a0
-	syscall 
+	syscall 	
 	#print credits	
 	lui $t3, 0x0     #masking for 10 bits of credits 
 	ori $t3, $t3, 0x3FF 
 	and $t7, $t3, $t9   #t7 now has the lower 10 bits as credits 
 	li $v0, 1                 # syscall for int 
    	move $a0, $t7             # Load credits into $a0
-	syscall 	
-	li $v0, 11		#start printing empty space 
-	li $t2, ' '		#put empty space in 
-	move $a0, $t2             # Load empty space into $a0
-	syscall 
-	
+	syscall 		
 	# Print name
 	lw $t6, 4($t4)  # now t6 stores the address for name of the struct 
 	li $v0, 4                 # System call for string 
@@ -68,4 +84,4 @@ search:
 	jr $ra
 
 delete:
-	jr $
+	jr $ra
