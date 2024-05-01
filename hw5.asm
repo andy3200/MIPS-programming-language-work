@@ -25,7 +25,7 @@ init_student:
 	
 print_student:	
 	# print ID
-	lw $t9, 0($a0)   #load the address of struct into t9 
+	lw $t9, 0($a0)   #load struct into t9 
 	move $t4, $a0      #put the address of a0 to t4
 	lui $t0, 0xFFFF   # Load upper 16 bits of the immediate value into $t0 (for id) (masking)
 	ori $t0, $t0, 0xFC00  # OR lower 16 bits of the immediate value into $t0 (for id) (masking) 
@@ -51,7 +51,7 @@ print_student:
 	syscall 
 	
 	# Print name
-	lw $t6, 4($t4)  # now t6 stores the address for name of the struct 
+	lw $t6, 4($t4)  # now t6 stores the address  for name of the struct 
 	li $v0, 4                 # System call for string 
 	move $a0, $t6             # Load address of name into $a0
 	syscall
@@ -59,7 +59,59 @@ print_student:
 	
 	
 init_student_array:
-	jr $ra
+	li $t0, 0                   # i = 0 for loop 
+	move $t1, $a0   #t1 now stores the number of students 
+	move $t2, $a1      #t2 now has the address of id_list[] 
+	move $t3, $a2       #t3 now has the address of the credits[] 
+	move $t4, $a3      #t4 now stores the pointer to name.
+	lw $t5, 0($sp)      #now t5 has the address of the record [] 
+	addi $sp, $sp, -16
+	sw $s2, 12($sp)
+	sw $ra, 8($sp)             #preseve ra to return to the caller of this function	
+	sw $s0, 4($sp)
+	sw $s1, 0($sp) 
+	
+loop_init:
+	bge $t0, $t1, loop_init_end # if i >= num of student then exit loop 
+	lw $a0, 0($t2)   # put in the id into a0 
+	lw $a1, 0($t3)    #put credit into a1 
+	addi $t2, $t2,4		#increment t2 to move ot next index
+	addi $t3, $t3,4 		#increment t2 to next index 
+	li $t8, 0            #x = 0 (used within get name loop)
+	move $t6, $t4           #store the address of t4 into t6 
+	jal loop_get_name      #go into the loop to get the name 
+	move $t6, $t4      	 #store the address of t4 into t6  (again to reset it)
+	sub $t6, $t4, $s1
+	lw $a2, 0($t4)    #give the address of the char* that we want 
+	li $s2, 2           
+	lw $a3, 0($t5)		#pass in the address of record[i] into a3 
+	addi $t5, $t5, 8          #increment by 8 (size of struct) to move to next index 
+	jal init_student  #call init_student 
+	addi $t0, $t0, 1 #i++ 
+	j loop_init #go back to loop 
+	 
+loop_get_name: 
+	 lb $t9, 0($t6)      #get the char at the address (name[x])
+	 beqz $t9, loop_get_name_end  # end loop if we encounter \0
+	 addi $t6, $t6,1 #x++ 
+	 j loop_get_name  #loop again 
+	 
+	 
+
+loop_get_name_end: 
+	addi $s1, $t8, 1
+	add $t4, $t4, $s1  #now t4 has the address of the string after null terminator 
+	jr $ra   #return 
+	
+	
+loop_init_end: 
+	lw $s2, 12($sp)
+	lw $ra, 8($sp) #retrieve ra 
+	lw $s0, 4($sp)	#retrieve s0
+	lw $s1, 0($sp)  #retrieve s1 
+	addi $sp, $sp, 12    #restore sp 
+	jr $ra      #return 
+	
 	
 insert:
 	jr $ra
@@ -68,4 +120,4 @@ search:
 	jr $ra
 
 delete:
-	jr $
+	jr $ra
