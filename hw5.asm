@@ -82,11 +82,33 @@ loop_init:
 	jal loop_get_name      #go into the loop to get the name 
 	move $t6, $t4      	 #store the address of t4 into t6  (again to reset it)
 	sub $t6, $t4, $s1
-	lw $a2, 0($t4)    #give the address of the char* that we want 
+	move $a2, $t6    #give the address of the char* that we want 
 	li $s2, 2           
-	lw $a3, 0($t5)		#pass in the address of record[i] into a3 
+	move $a3, $t5		#pass in the address of record[i] into a3 
 	addi $t5, $t5, 8          #increment by 8 (size of struct) to move to next index 
+	addi $sp, $sp, -40        
+    	sw $t0, 0($sp)            
+    	sw $t1, 4($sp)          
+    	sw $t2, 8($sp)           
+    	sw $t3, 12($sp)         
+    	sw $t4, 16($sp)           
+    	sw $t5, 20($sp)          
+    	sw $t6, 24($sp)           
+    	sw $t7, 28($sp)           
+    	sw $t8, 32($sp)         
+    	sw $t9, 36($sp)          
 	jal init_student  #call init_student 
+	lw $t9, 36($sp)          
+    	lw $t8, 32($sp)           
+    	lw $t7, 28($sp)           
+    	lw $t6, 24($sp)          
+    	lw $t5, 20($sp)           
+    	lw $t4, 16($sp)          
+    	lw $t3, 12($sp)           
+    	lw $t2, 8($sp)           
+    	lw $t1, 4($sp)            
+    	lw $t0, 0($sp)            
+    	addi $sp, $sp, 40         # Deallocate space on the stack
 	addi $t0, $t0, 1 #i++ 
 	j loop_init #go back to loop 
 	 
@@ -94,6 +116,7 @@ loop_get_name:
 	 lb $t9, 0($t6)      #get the char at the address (name[x])
 	 beqz $t9, loop_get_name_end  # end loop if we encounter \0
 	 addi $t6, $t6,1 #x++ 
+	 addi $t8, $t8, 1 #t8 is the index as well. when it goes to loop end it is at the index of \0
 	 j loop_get_name  #loop again 
 	 
 	 
