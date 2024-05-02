@@ -25,11 +25,13 @@ init_student:
 	
 print_student:	
 	# print ID
+	addi $sp, $sp, -4
+	sw $v0, 0($sp)
 	lw $t9, 0($a0)   #load struct into t9 
 	move $t4, $a0      #put the address of a0 to t4
 	lui $t0, 0xFFFF   # Load upper 16 bits of the immediate value into $t0 (for id) (masking)
 	ori $t0, $t0, 0xFC00  # OR lower 16 bits of the immediate value into $t0 (for id) (masking) 
-	and $t8, $t0, $t9  #now t8 stores the 32 bits for name 
+	and $t8, $t0, $t9  #now t8 stores the 32 bits for id and credits 
 	srl $t8, $t8, 10             #shift 10 bits down
 	li $v0, 1                 # syscall for int 
    	move $a0, $t8             # Load ID into $a0
@@ -55,6 +57,8 @@ print_student:
 	li $v0, 4                 # System call for string 
 	move $a0, $t6             # Load address of name into $a0
 	syscall
+	lw $v0, 0($sp)
+	addi $sp, $sp, 4
 	jr $ra                    #return 
 	
 	
@@ -137,10 +141,76 @@ loop_init_end:
 	
 	
 insert:
-	jr $ra
+	# get the ID 
+	lw $t9, 0($a0)   #load struct into t9 
+	lui $t0, 0xFFFF   # Load upper 16 bits of the immediate value into $t0 (for id) (masking)
+	ori $t0, $t0, 0xFC00  # OR lower 16 bits of the immediate value into $t0 (for id) (masking) 
+	and $t8, $t0, $t9  #now t8 stores the 32 bits for id and credits 
+	srl $t8, $t8, 10             #shift 10 bits down to get the id only  now t8 has the id only 
+   	
+   	#now do the hash index
+   	div $t8, $a2   #do the division 
+   	mfhi $t7 	#get the MOD result into t7 (the index) 
+   	
+   	#now get the actual address of hash index 
+   	li $t6, 4    #multiplier to get the actual address of the index 
+   	addi $t0, $a2, -1     #get the index of the last index of array
+   	mult $t0, $t6    #multiply index by 4 
+   	mflo $t0      #now t0 has the offset of address of the last elemnent of the array   
+   	add $t0, $t0, $a1 #now t0 actually has the actual address of the last element 
+   	mult $t6, $t7 #get the offset of actual address of index. (index * 4) 
+   	mflo $t7       #now t7 contains offset of the actual address index, instead of just the hash index 
+   	add $t8, $t7, $a1 #  now t8 has the actual address of the index address of first element + the offset to get table[index]
+   	
+   
+   	#might have to move above 2 lines into loop 
+insert_loop:
+	lw $t6, 0($t8) #now t6 has the contents at table[index] 
+	beqz $t6, insert_ok   # if it's empty then insert 
+	li $t3, -1         #load -1 into $t3 
+	beq $t6, $t3 , insert_ok   #tombstone, insert as well
+	move $t5, $a1      #put the initial address back to $t5 (to use in loop around) 
+	beq $t8,$t0, loop_around #if we couldn't insert and we reach the end of array (gotta consider two conditions:first time looping and second time) 
+	addi $t8,$t8,4   #move to next address (if we go into loop_around, it will change it to the beginning address) 
+	j insert_loop        # loop again
 	
-search:
-	jr $ra
+#note i already saved ra in the beginning 
+loop_around:
+	lw $t6, 0($t5) #now t6 has the contents at table[index] 
+	beqz $t6, insert_ok_2   # if it's empty then insert 
+	li $t3, -1         #load -1 into $t3 
+	beq $t6, $t3 , insert_ok_2   #tombstone, insert as well
+	beq $t5,$t0, insert_failed #we already looped but still couldn't find spot. insert failed. 
+	addi $t5,$t5,4   #move to next address (if we go into loop_around, it will change it to the beginning address) 
+	j loop_around        # loop again
+	
+	
+insert_ok:#uses t8 (the actual address to be inserted)
+	sw $a0, 0($t8) #save the struct into the table 
+	#calculate the index 
+	sub $t1, $t8, $a1   #get the index (insert adderess - src address of table) 
+	li $t8, 4
+	div $t1, $t8       #dividing difference of address by 4 to get index 
+	mflo $t7    #now t7 has the table index of inserted 
+	move $v0, $t7      #move t1 (the index) into v0 to return 
+	jr $ra 
+	
+insert_ok_2: #uses t5 (the actual address to be inserted)
+	sw $a0, 0($t5) #save the struct into the table 
+	#calculate the index 
+	sub $t1, $t5, $a1   #get the index (insert adderess - src address of table) 
+	li $t8, 4
+	div $t1, $t8       #dividing difference of address by 4 to get index 
+	mflo $t7    #now t7 has the table index of inserted 
+	move $v0, $t7      #move t1 (the index) into v0 to return 
+	jr $ra 
+	
+insert_failed:
+	li $t2, -1     #load -1 into t2 for failed insert 
+	move $v0, $t2     #move t2 which is -1 into v0 for return 
+	jr $ra     
 
-delete:
+
+
+search:
 	jr $ra
