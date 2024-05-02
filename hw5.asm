@@ -213,4 +213,46 @@ insert_failed:
 
 
 search:
+	#get masking 
+	lui $t0, 0xFFFF   # Load upper 16 bits of the immediate value into $t0 (for id) (masking)
+	ori $t0, $t0, 0xFC00  # OR lower 16 bits of the immediate value into $t0 (for id) (masking) 
+	li $t6, 4    #multiplier to get the actual address of the index 
+   	addi $t7, $a2, -1     #get the index of the last index of array
+   	mult $t7, $t6    #multiply index by 4 
+   	mflo $t7      #now t7 has the offset of address of the last elemnent of the array   
+   	add $t7, $t7, $a1 #now t7 actually has the actual address of the last element of the table
+   	move $t1, $a1      #move the table address into t1 
+	#now start extracting the record 
+loop_search: 
+	lw $t2, 0($t1) #now t2 has the address of the contents at table[index] 
+	li $t3, -1         #load -1 into $t3 (tombstone)
+	beqz $t2, continue_loop_search #if it's empty then skip 
+	beq $t2,$t3, continue_loop_search  #if its tombstone also skip 
+	#reach here means it has a student record. t2 has the address of record 
+	lw $t4, 0($t2)    #get the content from the address of record 
+	and $t5,$t4,$t0    
+	srl $t5, $t5, 10  #shift 10 bits down to get the id only  now t5 has the id only 
+	beq $t5,$a0, found_it  #check if the id is the one wanted 
+	j continue_loop_search 
+	
+continue_loop_search: 
+	beq $t7,$t1, search_failed #if you reach the end of table and didnt find it. failed. 
+	add $t1,$t1,$t6     #move to next address (address +4) 
+	j loop_search  #go back to loop_search to loop again 
+
+search_failed:
+	li $v0,0 #0 for  not found 
+	li $v1,-1 #-1 for not found 
+	jr $ra #return 
+
+found_it:
+	move $v0, $t2  #give the address of record found
+	#calculate the index 
+	sub $t1, $t1, $a1   #get the address difference (insert adderess - src address of table) 
+	li $t6, 4
+	div $t1, $t6       #dividing difference of address by 4 to get index 
+	mflo $t1    #now t1 has the table index of found
+	move $v1, $t1		#move the found index into v1 for return 
+	jr $ra #return 
+delete:
 	jr $ra
