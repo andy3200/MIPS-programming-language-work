@@ -255,4 +255,50 @@ found_it:
 	move $v1, $t1		#move the found index into v1 for return 
 	jr $ra #return 
 delete:
-	jr $ra
+	addi $sp, $sp, -52     
+    	sw $t0, 0($sp)            
+    	sw $t1, 4($sp)          
+    	sw $t2, 8($sp)           
+    	sw $t3, 12($sp)         
+    	sw $t4, 16($sp)           
+    	sw $t5, 20($sp)          
+    	sw $t6, 24($sp)           
+    	sw $t7, 28($sp)           
+    	sw $t8, 32($sp)         
+    	sw $t9, 36($sp)  
+    	sw $ra, 40($sp)
+    	sw $v0, 44($sp)
+    	sw $v1, 48($sp)
+    	jal search    	#call search here 
+    	lw $t0, 0($sp)            
+    	lw $t1, 4($sp)          
+    	lw $t2, 8($sp)           
+    	lw $t3, 12($sp)         
+    	lw $t4, 16($sp)           
+    	lw $t5, 20($sp)          
+    	lw $t6, 24($sp)           
+    	lw $t7, 28($sp)           
+    	lw $t8, 32($sp)         
+    	lw $t9, 36($sp)  
+    	lw $ra, 40($sp)
+    	move $t1, $v0 #now t1 has return value of search 
+    	move $t2, $v1 #now t2 has return value of search 
+    	sw $v0, 44($sp)
+    	sw $v1, 48($sp)
+    	addi $sp, $sp, 52 #restore sp 
+    	beqz $t1, not_found_delete #was not found so can't do anything 
+    	#else it's found then t2 has the array index 
+    	li $t3,4 
+    	mult $t2, $t3    #multiply index by 4 
+   	mflo $t4      #now t4 has the offset of address of the last elemnent of the array  
+   	add $t5, $t4, $a1    #now t5 has the actual address of the hash table
+   	lw $t6, 0($t5)     #now t6 has the record address
+   	li $t7, -1    	#now t7 represents tombstone 
+   	sw $t7, 0($t5)   #instead of record address, now the index at the hash table has tombstone 
+   	move $v0, $t2  #now v0 has the index of hash table found 
+   	jr $ra 
+    	
+not_found_delete:
+	li $t8, -1
+	move $v0, $t8		#return -1 when not found
+	jr $ra 
